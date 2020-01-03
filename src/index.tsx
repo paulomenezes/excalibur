@@ -14,6 +14,7 @@ type ExcaliburTextElement = ExcaliburElement & {
 };
 
 const LOCAL_STORAGE_KEY = "excalibur";
+const LOCAL_STORAGE_KEY_STATE = "excalibur-state";
 
 var elements = Array.of<ExcaliburElement>();
 
@@ -360,41 +361,39 @@ function deleteSelectedElements() {
   }
 }
 
-function save() {
-  if (elements && elements.length > 0) {
-    const items = [...elements];
-    for (const item of items) {
-      item.isSelected = false;
-    }
-
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
-  }
-
-  window.removeEventListener("beforeunload", onUnload);
+function save(state: AppState) {
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(elements));
+  localStorage.setItem(LOCAL_STORAGE_KEY_STATE, JSON.stringify(state));
 }
 
 function restore() {
-  const el = localStorage.getItem(LOCAL_STORAGE_KEY);
+  try {
+    const el = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const state = localStorage.getItem(LOCAL_STORAGE_KEY_STATE);
 
-  if (el) {
-    const items = JSON.parse(el);
-    for (let item of items) {
-      item = generateDraw(item, "#000000", "#ffffff");
+    let parsed: AppState | null = null;
+
+    if (el) {
+      if (state) {
+        parsed = JSON.parse(state);
+      }
+
+      const items = JSON.parse(el);
+      items.forEach((element: ExcaliburElement) => {
+        generateDraw(
+          element,
+          parsed?.itemStrokeColor ?? "#000000",
+          parsed?.itemBackgroundColor ?? "#ffffff"
+        );
+      });
+
+      elements = [...items];
     }
-    elements = [...items];
+
+    return state ? JSON.parse(state) : null;
+  } catch (e) {
+    return {};
   }
-}
-
-function onUnload(event: BeforeUnloadEvent) {
-  event.preventDefault();
-
-  const confirmationMessage = "excalibur";
-  event.returnValue = confirmationMessage;
-  return confirmationMessage;
-}
-
-function addOnBeforeUnload() {
-  window.addEventListener("beforeunload", onUnload);
 }
 
 type AppState = {
@@ -410,12 +409,18 @@ type AppState = {
 
 class App extends React.Component<{}, AppState> {
   public componentDidMount() {
+    const savedState = restore();
+
+    if (savedState) {
+      console.log(savedState);
+      this.setState(savedState);
+    }
+
     document.addEventListener("keydown", this.onKeyDown, false);
   }
 
   public componentWillUnmount() {
     document.removeEventListener("keydown", this.onKeyDown, false);
-    window.removeEventListener("beforeunload", onUnload);
   }
 
   public state: AppState = {
@@ -439,7 +444,6 @@ class App extends React.Component<{}, AppState> {
       drawScene();
       event.preventDefault();
     } else if (event.key === "Backspace") {
-      addOnBeforeUnload();
       deleteSelectedElements();
       drawScene();
       event.preventDefault();
@@ -449,8 +453,6 @@ class App extends React.Component<{}, AppState> {
       event.key === "ArrowUp" ||
       event.key === "ArrowDown"
     ) {
-      addOnBeforeUnload();
-
       const step = event.shiftKey ? 5 : 1;
       elements.forEach(element => {
         if (element.isSelected) {
@@ -498,11 +500,6 @@ class App extends React.Component<{}, AppState> {
     return (
       <>
         <div className="wrappers">
-          <div className="saveWrapper">
-            <button disabled={elements.length === 0} onClick={save}>
-              Save
-            </button>
-          </div>
           <div className="exportWrapper">
             <button
               onClick={() => {
@@ -594,7 +591,6 @@ class App extends React.Component<{}, AppState> {
                   this.state.itemBackgroundColor
                 );
                 elements.push(parsedElement);
-                addOnBeforeUnload();
               });
               drawScene();
             }
@@ -641,8 +637,6 @@ class App extends React.Component<{}, AppState> {
                 if (isDraggingElements) {
                   document.documentElement.style.cursor = "move";
                 }
-              } else {
-                addOnBeforeUnload();
               }
 
               if (isTextElement(element)) {
@@ -707,7 +701,6 @@ class App extends React.Component<{}, AppState> {
                     lastX = x;
                     lastY = y;
                     drawScene();
-                    addOnBeforeUnload();
                     return;
                   }
                 }
@@ -854,31 +847,35 @@ class App extends React.Component<{}, AppState> {
     );
   }
   componentDidUpdate() {
-    const fillStyle = context.fillStyle;
-    context.fillStyle = this.state.viewBgColor;
-    context.fillRect(-0.5, -0.5, canvas.width, canvas.height);
-    context.fillStyle = fillStyle;
+    if (context) {
+      const fillStyle = context.fillStyle;
+      context.fillStyle = this.state.viewBgColor;
+      context.fillRect(-0.5, -0.5, canvas.width, canvas.height);
+      context.fillStyle = fillStyle;
 
-    elements.forEach(element => {
-      element.draw(rc, context);
-      if (element.isSelected) {
-        const margin = 4;
+      elements.forEach(element => {
+        element.draw(rc, context);
+        if (element.isSelected) {
+          const margin = 4;
 
-        const elementX1 = getElementAbsoluteX1(element);
-        const elementX2 = getElementAbsoluteX2(element);
-        const elementY1 = getElementAbsoluteY1(element);
-        const elementY2 = getElementAbsoluteY2(element);
-        const lineDash = context.getLineDash();
-        context.setLineDash([8, 4]);
-        context.strokeRect(
-          elementX1 - margin,
-          elementY1 - margin,
-          elementX2 - elementX1 + margin * 2,
-          elementY2 - elementY1 + margin * 2
-        );
-        context.setLineDash(lineDash);
-      }
-    });
+          const elementX1 = getElementAbsoluteX1(element);
+          const elementX2 = getElementAbsoluteX2(element);
+          const elementY1 = getElementAbsoluteY1(element);
+          const elementY2 = getElementAbsoluteY2(element);
+          const lineDash = context.getLineDash();
+          context.setLineDash([8, 4]);
+          context.strokeRect(
+            elementX1 - margin,
+            elementY1 - margin,
+            elementX2 - elementX1 + margin * 2,
+            elementY2 - elementY1 + margin * 2
+          );
+          context.setLineDash(lineDash);
+        }
+      });
+
+      save(this.state);
+    }
   }
 }
 
@@ -891,8 +888,6 @@ const context = canvas.getContext("2d")!;
 // Big hack to ensure that all the 1px lines are drawn at 1px instead of 2px
 // https://stackoverflow.com/questions/13879322/drawing-a-1px-thick-line-in-canvas-creates-a-2px-thick-line/13879402#comment90766599_13879402
 context.translate(0.5, 0.5);
-
-restore();
 
 function drawScene() {
   ReactDOM.render(<App />, rootElement);
