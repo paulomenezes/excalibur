@@ -4,16 +4,42 @@
   src: url("https://uploads.codesandbox.io/uploads/user/ed077012-e728-4a42-8395-cbd299149d62/AflB-FG_Virgil.ttf");
 }
 
-.wrappers {
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.container {
   display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+  flex-direction: row;
+}
+
+.panel {
+  width: 350px;
+  background-color: #f5f5f5;
+
+  padding: 10px;
+}
+
+.panel button {
+  width: 100%;
+  padding: 5px;
+
+  background-color: white;
+
+  border-radius: 3px;
+  border: 1px solid #ddd;
+}
+
+.panel button:hover {
+  background-color: #eee;
 }
 
 .exportWrapper {
-  display: flex;
-  align-items: center;
+  /* display: flex;
+  align-items: center; */
 }
+
 .exportWrapper label {
   display: flex;
   align-items: center;
@@ -28,4 +54,31 @@
   width: 40px;
   padding: 2px;
   margin-left: 10px;
+}
+
+.radioGroup {
+  display: flex;
+  padding: 10px 0;
+}
+
+.radio {
+  margin-right: 5px;
+}
+
+.radio [type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.radio [type="radio"] + .icon {
+  cursor: pointer;
+  background-color: #fff;
+  border-radius: 3px;
+  padding: 10px 15px;
+}
+
+.radio [type="radio"]:checked + .icon {
+  box-shadow: inset 0px 0px 0px 1px #ddd;
 }

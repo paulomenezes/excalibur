@@ -2,8 +2,17 @@ import React from "react";
 import ReactDOM from "react-dom";
 import rough from "roughjs/bin/wrappers/rough";
 import { RoughCanvas } from "roughjs/bin/canvas";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMousePointer,
+  faExpandAlt,
+  faSquare,
+  faCircle,
+  faFont
+} from "@fortawesome/free-solid-svg-icons";
 
 import "./styles.css";
+import { IconProp } from "@fortawesome/fontawesome-svg-core";
 
 type ExcaliburElement = ReturnType<typeof newElement>;
 type ExcaliburTextElement = ExcaliburElement & {
@@ -455,37 +464,49 @@ class App extends React.Component<{}, AppState> {
     }
   };
 
-  private renderOption({
-    type,
-    children
-  }: {
-    type: string;
-    children: React.ReactNode;
-  }) {
+  private renderOption({ type, icon }: { type: string; icon: IconProp }) {
+    // <label className="radio">One
+    //           <input type="checkbox" checked={true} />
+    //           <span className="checkmark"></span>
+    //         </label>
+
     return (
-      <label>
-        <input
-          type="radio"
-          checked={this.state.elementType === type}
-          onChange={() => {
-            this.setState({ elementType: type });
-            clearSelection();
-            drawScene();
-          }}
-        />
-        {children}
-      </label>
+      <div className="radio">
+        <label>
+          <input
+            type="radio"
+            checked={this.state.elementType === type}
+            onChange={() => {
+              this.setState({ elementType: type });
+              clearSelection();
+              drawScene();
+            }}
+          />
+          <div className="icon">
+            <FontAwesomeIcon icon={icon} />
+          </div>
+        </label>
+      </div>
     );
   }
 
   public render() {
     return (
-      <>
-        <div className="wrappers">
+      <div className="container">
+        <div className="panel">
           <div className="saveWrapper">
             <button disabled={elements.length === 0} onClick={save}>
               Save
             </button>
+          </div>
+          <div className="toolsWrapper">
+            <div className="radioGroup">
+              {this.renderOption({ type: "selection", icon: faMousePointer })}
+              {this.renderOption({ type: "rectangle", icon: faSquare })}
+              {this.renderOption({ type: "ellipse", icon: faCircle })}
+              {this.renderOption({ type: "arrow", icon: faExpandAlt })}
+              {this.renderOption({ type: "text", icon: faFont })}
+            </div>
           </div>
           <div className="exportWrapper">
             <button
@@ -572,14 +593,14 @@ class App extends React.Component<{}, AppState> {
             e.preventDefault();
           }}
         >
-          {this.renderOption({ type: "rectangle", children: "Rectangle" })}
-          {this.renderOption({ type: "ellipse", children: "Ellipse" })}
-          {this.renderOption({ type: "arrow", children: "Arrow" })}
-          {this.renderOption({ type: "text", children: "Text" })}
-          {this.renderOption({ type: "selection", children: "Selection" })}
+          {/* {this.renderOption({ type: "rectangle", icon: "Rectangle" })}
+          {this.renderOption({ type: "ellipse", icon: "Ellipse" })}
+          {this.renderOption({ type: "arrow", icon: "Arrow" })}
+          {this.renderOption({ type: "text", icon: "Text" })}
+          {this.renderOption({ type: "selection", icon: "Selection" })} */}
           <canvas
             id="canvas"
-            width={window.innerWidth}
+            width={window.innerWidth - 250}
             height={window.innerHeight}
             onMouseDown={e => {
               const x = e.clientX - (e.target as HTMLElement).offsetLeft;
@@ -740,7 +761,7 @@ class App extends React.Component<{}, AppState> {
             }}
           />
         </div>
-      </>
+      </div>
     );
   }
 }
